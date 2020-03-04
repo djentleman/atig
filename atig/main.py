@@ -2,7 +2,7 @@ import sys
 import os
 import re
 import curses
-from migration import Migration, MigrationCollection
+from atig.migration import Migration, MigrationCollection
 
 class Atig():
     def __init__(self):

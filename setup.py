@@ -7,5 +7,5 @@ setuptools.setup(
     python_requires='>=3.6',
     entry_points={
         'console_scripts':
-        ['atig=main:main'],
+        ['atig=atig:main'],
     })
