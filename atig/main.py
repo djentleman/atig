@@ -9,8 +9,9 @@ class Atig():
         self.valid_migration = re.compile(r'[0-9a-f]{12}\_.*\.py')
         self.migrations = None
         self.migration_collection = None
+        self.debug_message = 'Welcome to ATIG 8^)'
 
-        if self.is_in_alembic_directory():
+        if self.is_in_alembic_directory() and self.alembic_is_installed():
             # first run ls, get all self.migrations and all hashes
             self.migrations = os.listdir('alembic/versions/')
             self.migrations = map(lambda x: Migration('alembic/versions/' + x),
@@ -28,7 +29,7 @@ class Atig():
         # Clear and refresh the screen for a blank canvas
         self.stdscr.clear()
         self.stdscr.refresh()
-
+        
         # Start colors in curses
         curses.start_color()
         curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
@@ -37,30 +38,52 @@ class Atig():
 
         self.event_loop()
 
+    def process_input(self):
+        if self.k == curses.KEY_DOWN:
+            self.cursor_y = self.cursor_y + 1
+        elif self.k == curses.KEY_UP:
+            self.cursor_y = self.cursor_y - 1
+        elif self.k == curses.KEY_RIGHT:
+            self.cursor_x = self.cursor_x + 1
+        elif self.k == curses.KEY_LEFT:
+            self.cursor_x = self.cursor_x - 1
+        elif self.k == curses.KEY_ENTER:
+            self.display_window = curses.newwin(5, 5, 5, 5)
+            self.display_window.border()
+        self.cursor_x = max(0, self.cursor_x)
+        self.cursor_x = min(self.width-1, self.cursor_x)
+        self.cursor_y = max(0, self.cursor_y)
+        self.cursor_y = min(self.height-1, self.cursor_y)
+
+    def render_status_bar(self):
+        statusbarstr = f"Press 'q' to exit | {self.debug_message} | Pos: {self.cursor_x}, {self.cursor_y}"
+
+        # Render status bar
+        self.stdscr.attron(curses.color_pair(3))
+        self.stdscr.addstr(self.height-1, 0, statusbarstr)
+        self.stdscr.addstr(self.height-1, len(statusbarstr), " " * (self.width - len(statusbarstr) - 1))
+        self.stdscr.attroff(curses.color_pair(3))
+
+
+
     def event_loop(self):
         # Initialization
         self.stdscr.clear()
         self.height, self.width = self.stdscr.getmaxyx()
         # Loop where k is the last character pressed
 
+
         while (self.k != ord('q')):
-            if self.k == curses.KEY_DOWN:
-                self.cursor_y = self.cursor_y + 1
-            elif self.k == curses.KEY_UP:
-                self.cursor_y = self.cursor_y - 1
-
-            self.cursor_x = max(0, self.cursor_x)
-            self.cursor_x = min(self.width-1, self.cursor_x)
-
-            self.cursor_y = max(0, self.cursor_y)
-            self.cursor_y = min(self.height-1, self.cursor_y)
-
-
+            self.process_input()
+            self.render_status_bar()
+            if not self.alembic_is_installed():
+                self.render_alembic_install_error()
             # check if we are in the right directory
-            if self.is_in_alembic_directory():
+            elif self.is_in_alembic_directory():
                 self.fetch_migration_information()
             else:
-                self.render_error()
+                self.render_directory_error()
+
 
             self.stdscr.move(self.cursor_y, self.cursor_x)
             # Refresh the screen
@@ -98,10 +121,15 @@ class Atig():
                 self.stdscr.addstr(1 + i, 20, migration.stringify(), curses.color_pair(1))
             
 
+    def render_alembic_install_error(self):
+        self.render_error("Alembic is not Installed")
 
-    def render_error(self):
+    def render_directory_error(self):
+        self.render_error("Not In Valid Alembic Directory")
+
+    def render_error(self, message):
         # Declaration of strings
-        title = "Not In Valid Alembic Directory"[:self.width-1]
+        title = message[:self.width-1]
         keystr = "Press q to exit"[:self.width-1]
         # Centering calculations
         start_x_title = int((self.width // 2) - (len(title) // 2) - len(title) % 2)
@@ -127,6 +155,8 @@ class Atig():
         return os.path.exists('alembic') and \
            os.path.exists('alembic/versions')
 
+    def alembic_is_installed(self):
+        return os.popen('which alembic').read() != ''
 
 
 
