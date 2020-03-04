@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="atig",
-    version="0.0.1",
+    version="0.0.2",
     author="Todd Perry",
     author_email="todd.perry@myport.ac.uk",
     description="Alembic migration history viewer",
